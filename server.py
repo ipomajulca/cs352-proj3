@@ -71,14 +71,22 @@ def sigint_handler(sig, frame):
 # Register the signal handler
 signal.signal(signal.SIGINT, sigint_handler)
 
-
 # TODO: put your application logic here!
-# Read login credentials for all the users
-# Read secret data of all the users
+# Read login credentials for all users
+login_credentials = {}
+with open('passwords.txt') as passwords:
+    for item in passwords:
+        username, password = item.strip().split()
+        login_credentials[username] = password
+        
 
-
-
-
+# Read secret data of all users
+secret_data = {}
+with open('secrets.txt') as secrets:
+    for item in secrets:
+        username, secret = item.strip().split()
+        secret_data[username] = secret
+        
 ### Loop to accept incoming HTTP connections and respond.
 while True:
     client, addr = sock.accept()
@@ -92,35 +100,64 @@ while True:
     print_value('entity body', body)
 
     # TODO: Put your application logic here!
-    # Parse headers and body and perform various actions
+    # Parse headers and body and perform various actions based on the user's input.
+    # Dictionary that maps tokens to usernames
+    token_username = {}
 
-    # You need to set the variables:
-    # (1) `html_content_to_send` => add the HTML content you'd
-    # like to send to the client.
-    # Right now, we just send the default login page.
-    html_content_to_send = login_page
-    # But other possibilities exist, including
-    # html_content_to_send = success_page + <secret>
-    # html_content_to_send = bad_creds_page
-    # html_content_to_send = logout_page
-    
-    # (2) `headers_to_send` => add any additional headers
-    # you'd like to send the client?
-    # Right now, we don't send any extra headers.
-    headers_to_send = ''
+    # Parse headers and body and perform various actions based on the user's input.
+    if 'username' in body and 'password' in body:
+        # We have login credentials, so let's try to log the user in.
+        username = body.split('&')[0].split('=')[1]
+        password = body.split('&')[1].split('=')[1]
+        if username in login_credentials and login_credentials[username] == password:
+            # Successful login.
+            rand_val = random.getrandbits(64)
+            token_username[rand_val] = username
+            headers_to_send = 'Set-Cookie: token=%d\r\n' % rand_val
+            html_content_to_send = success_page + secret_data[username]
+        else:
+            # Bad credentials.
+            headers_to_send = ''
+            html_content_to_send = bad_creds_page
+    elif 'Cookie' in headers:
+        # We have a cookie, so let's check if it's valid.
+        cookie = headers.split('Cookie: ')[1].split('\r\n')[0]
+        token = cookie.split('=')[1]
+        if token in token_username:
+            # Valid cookie.
+            username = token_username[token]
+            html_content_to_send = success_page + secret_data[username]
+            headers_to_send = ''
+        else:
+            # Invalid cookie.
+            html_content_to_send = login_page
+            headers_to_send = ''
+    elif 'action' in body and body.split('=')[1] == 'logout':
+        # Logout action.
+        html_content_to_send = logout_page
+        headers_to_send = 'Set-Cookie: token=\r\n'
+    elif 'password' in body and body.split('=')[1] == 'new':
+        # New password action.
+        html_content_to_send = new_password_page
+        headers_to_send = ''
+    else:
+        # Default: Login page.
+        html_content_to_send = login_page
+        headers_to_send = ''
 
-    # Construct and send the final response
+
+
+    # Construct and send the final response back to the client.
     response  = 'HTTP/1.1 200 OK\r\n'
     response += headers_to_send
     response += 'Content-Type: text/html\r\n\r\n'
     response += html_content_to_send
-    print_value('response', response)    
+    print_value('response', response)
     client.send(response)
     client.close()
-    
     print "Served one request/connection!"
     print
-
+    
 # We will never actually get here.
 # Close the listening socket
 sock.close()
