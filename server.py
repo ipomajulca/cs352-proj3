@@ -110,6 +110,20 @@ while True:
         html_content_to_send = new_password_page
         headers_to_send = ''
         
+    elif 'username' in body and 'password' in body:
+        # We have login credentials, so let's try to log the user in.
+        username = body.split('&')[0].split('=')[1]
+        password = body.split('&')[1].split('=')[1]
+        if username in login_credentials and login_credentials[username] == password:
+            # Successful login.
+            rand_val = int(random.getrandbits(64))
+            token_username[rand_val] = username
+            headers_to_send = "Set-Cookie: token=" + str(rand_val) + "\r\n"
+            html_content_to_send = success_page + secret_data[username]
+        else:
+            # Bad credentials.
+            headers_to_send = ''
+            html_content_to_send = bad_creds_page
     elif 'Cookie' in headers:
         # We have a cookie, so let's check if it's valid.
         cookie = headers.split('Cookie: ')[1].split('\r\n')[0]
@@ -126,21 +140,6 @@ while True:
                 # Invalid cookie.
                 html_content_to_send = login_page
                 headers_to_send = ''
-    elif 'username' in body and 'password' in body:
-        # We have login credentials, so let's try to log the user in.
-        username = body.split('&')[0].split('=')[1]
-        password = body.split('&')[1].split('=')[1]
-        if username in login_credentials and login_credentials[username] == password:
-            # Successful login.
-            rand_val = int(random.getrandbits(64))
-            token_username[rand_val] = username
-            headers_to_send = 'Set-Cookie: token=%d\r\n' % rand_val
-            html_content_to_send = success_page + secret_data[username]
-        else:
-            # Bad credentials.
-            headers_to_send = ''
-            html_content_to_send = bad_creds_page
-   
     else:
         # Default: Login page.
         html_content_to_send = login_page
