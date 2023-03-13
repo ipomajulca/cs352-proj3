@@ -153,7 +153,7 @@ while True:
                 headers_to_send = ''
             else:
                 # Invalid cookie.
-                html_content_to_send = login_page
+                html_content_to_send = bad_creds_page
                 headers_to_send = ''
     else:
         # Default: Login page.
