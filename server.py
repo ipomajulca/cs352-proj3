@@ -84,7 +84,13 @@ with open('secrets.txt') as secrets:
     for item in secrets:
         username, secret = item.strip().split()
         secret_data[username] = secret
-        
+
+def update_password(username, new_password):
+    login_credentials[username] = new_password
+    with open('passwords.txt', 'w') as passwords:
+        for username, password in login_credentials.items():
+            passwords.write('{} {}\n'.format(username, password))
+                    
 # Dictionary that maps tokens to usernames
 token_username = {}
 
@@ -109,6 +115,14 @@ while True:
         # New password action.
         html_content_to_send = new_password_page
         headers_to_send = ''
+
+    elif 'NewPassword' in body:
+        # Update password action.
+        new_password = body.split('&')[0].split('=')[1]
+        update_password(username, new_password)
+        html_content_to_send = success_page + secret_data[username]
+        headers_to_send = ''
+
         
     elif 'username' in body and 'password' in body:
         # We have login credentials, so let's try to log the user in.
