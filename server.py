@@ -110,7 +110,8 @@ while True:
     if 'action' in body and body.split('=')[1] == 'logout':
         # Logout action.
         html_content_to_send = logout_page
-        headers_to_send = 'Set-Cookie: token=\r\n'
+        headers_to_send = 'Set-Cookie: token=; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\n'
+        
     elif 'password' in body and body.split('=')[1] == 'new':
         # New password action.
         html_content_to_send = new_password_page
